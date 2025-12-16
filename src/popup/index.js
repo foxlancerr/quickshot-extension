@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import Popup from './popup';
 import './Popup.css';
+import Popup from './popup';
 
 // Initialize React app
 const container = document.getElementById('root');
@@ -27,4 +27,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Reload the popup to show editor
     window.location.reload();
   }
+  return true;
 });

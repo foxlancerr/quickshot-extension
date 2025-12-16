@@ -7,6 +7,7 @@ const isProduction = process.env.NODE_ENV === "production";
 
 module.exports = {
   mode: isProduction ? "production" : "development",
+  devtool: isProduction ? false : "cheap-source-map",
 
   entry: {
     popup: "./src/popup/index.js",
@@ -50,11 +51,11 @@ module.exports = {
   },
 
   resolve: {
-    extensions: [".js", ".jsx"]
+    extensions: [".js", ".jsx"],
+    alias: {
+      react: path.resolve(__dirname, 'node_modules/react')
+    }
   },
-
-  // FIX: Use source maps that don't violate CSP
-  devtool: isProduction ? false : "cheap-source-map",
 
   plugins: [
     new CleanWebpackPlugin(),
@@ -69,26 +70,12 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: "manifest.json", to: "." },
-        { from: "src/popup/Popup.css", to: "popup.css" },
-        { from: "src/assets/icons", to: "icons", noErrorOnMissing: true }
+        { from: "src/assets/icons", to: "icons", noErrorOnMissing: true },
       ]
     })
   ],
 
   optimization: {
-    minimize: isProduction,
-    minimizer: [
-      (compiler) => {
-        const TerserPlugin = require('terser-webpack-plugin');
-        new TerserPlugin({
-          terserOptions: {
-            // Prevent eval() in production
-            compress: {
-              unsafe: false
-            }
-          }
-        }).apply(compiler);
-      }
-    ]
+    minimize: isProduction
   }
 };

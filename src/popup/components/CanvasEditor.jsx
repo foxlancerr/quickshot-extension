@@ -1,43 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
-import { 
-  Maximize2, Minus, Plus, RotateCw,
-  FlipHorizontal, FlipVertical, Grid3x3,
-  Type, MousePointer, Square, Circle,
-  MinusCircle, Undo2, Redo2, Trash2,
-  Save, Copy, Share2, Upload
-} from 'lucide-react';
+import { Maximize2, Minus, Plus, RotateCw, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import Toolbar from './ToolBar';
+
 
 const CanvasEditor = ({ imageData, onBack }) => {
   const canvasRef = useRef(null);
   const fabricCanvas = useRef(null);
   const [activeTool, setActiveTool] = useState('select');
   const [brushColor, setBrushColor] = useState('#ff4757');
-  const [brushWidth, setBrushWidth] = useState(5);
-  const [history, setHistory] = useState([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [textValue, setTextValue] = useState('');
-
-  const tools = [
-    { id: 'select', name: 'Select', icon: <MousePointer size={18} /> },
-    { id: 'rectangle', name: 'Rectangle', icon: <Square size={18} /> },
-    { id: 'circle', name: 'Circle', icon: <Circle size={18} /> },
-    { id: 'line', name: 'Line', icon: <Minus size={18} /> },
-    { id: 'arrow', name: 'Arrow', icon: <MinusCircle size={18} /> },
-    { id: 'text', name: 'Text', icon: <Type size={18} /> },
-    { id: 'brush', name: 'Brush', icon: '🖌️' },
-    { id: 'grid', name: 'Grid', icon: <Grid3x3 size={18} /> }
-  ];
+  const [brushSize, setBrushSize] = useState(5);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (imageData && canvasRef.current) {
+      // Initialize fabric canvas
       fabricCanvas.current = new fabric.Canvas(canvasRef.current, {
-        backgroundColor: '#ffffff',
-        preserveObjectStacking: true
+        backgroundColor: '#ffffff'
       });
 
+      // Load image
       fabric.Image.fromURL(imageData, (img) => {
         const scale = Math.min(
           800 / img.width,
@@ -49,14 +32,7 @@ const CanvasEditor = ({ imageData, onBack }) => {
         fabricCanvas.current.setHeight(img.height * scale);
         fabricCanvas.current.add(img);
         fabricCanvas.current.renderAll();
-        
-        saveToHistory();
       });
-
-      // Setup event listeners
-      fabricCanvas.current.on('object:modified', saveToHistory);
-      fabricCanvas.current.on('object:added', saveToHistory);
-      fabricCanvas.current.on('object:removed', saveToHistory);
     }
 
     return () => {
@@ -66,48 +42,19 @@ const CanvasEditor = ({ imageData, onBack }) => {
     };
   }, [imageData]);
 
-  const saveToHistory = () => {
-    if (fabricCanvas.current) {
-      const json = JSON.stringify(fabricCanvas.current.toJSON());
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(json);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-    }
-  };
-
-  const undo = () => {
-    if (historyIndex > 0) {
-      setHistoryIndex(historyIndex - 1);
-      fabricCanvas.current.loadFromJSON(
-        history[historyIndex - 1],
-        fabricCanvas.current.renderAll.bind(fabricCanvas.current)
-      );
-    }
-  };
-
-  const redo = () => {
-    if (historyIndex < history.length - 1) {
-      setHistoryIndex(historyIndex + 1);
-      fabricCanvas.current.loadFromJSON(
-        history[historyIndex + 1],
-        fabricCanvas.current.renderAll.bind(fabricCanvas.current)
-      );
-    }
-  };
-
-  const handleToolSelect = (toolId) => {
+  const handleToolChange = (toolId) => {
     setActiveTool(toolId);
     
-    switch(toolId) {
+    if (!fabricCanvas.current) return;
+
+    switch (toolId) {
       case 'rectangle':
-        fabricCanvas.current.isDrawingMode = false;
         const rect = new fabric.Rect({
           left: 100,
           top: 100,
           fill: 'transparent',
           stroke: brushColor,
-          strokeWidth: brushWidth,
+          strokeWidth: brushSize,
           width: 100,
           height: 100
         });
@@ -115,14 +62,13 @@ const CanvasEditor = ({ imageData, onBack }) => {
         break;
         
       case 'circle':
-        fabricCanvas.current.isDrawingMode = false;
         const circle = new fabric.Circle({
           left: 100,
           top: 100,
           radius: 50,
           fill: 'transparent',
           stroke: brushColor,
-          strokeWidth: brushWidth
+          strokeWidth: brushSize
         });
         fabricCanvas.current.add(circle);
         break;
@@ -131,7 +77,7 @@ const CanvasEditor = ({ imageData, onBack }) => {
         fabricCanvas.current.isDrawingMode = true;
         fabricCanvas.current.freeDrawingBrush = new fabric.PencilBrush(fabricCanvas.current);
         fabricCanvas.current.freeDrawingBrush.color = brushColor;
-        fabricCanvas.current.freeDrawingBrush.width = brushWidth;
+        fabricCanvas.current.freeDrawingBrush.width = brushSize;
         break;
         
       case 'text':
@@ -139,227 +85,145 @@ const CanvasEditor = ({ imageData, onBack }) => {
           left: 100,
           top: 100,
           fill: brushColor,
-          fontSize: 20,
-          fontFamily: 'Arial'
+          fontSize: 20
         });
         fabricCanvas.current.add(text);
-        fabricCanvas.current.setActiveObject(text);
-        break;
-        
-      case 'grid':
-        // Toggle grid
         break;
     }
   };
 
-  const addArrow = () => {
-    const line = new fabric.Line([50, 50, 150, 150], {
-      stroke: brushColor,
-      strokeWidth: brushWidth,
-      fill: brushColor,
-      strokeLineCap: 'round',
-      selectable: true
-    });
-    
-    // Add arrowhead
-    const angle = Math.atan2(150 - 50, 150 - 50);
-    const headLength = 15;
-    
-    const arrow = new fabric.Triangle({
-      left: 150,
-      top: 150,
-      fill: brushColor,
-      angle: angle * 180 / Math.PI,
-      width: headLength,
-      height: headLength
-    });
-    
-    const group = new fabric.Group([line, arrow]);
-    fabricCanvas.current.add(group);
+  const handleUndo = () => {
+    // Simple undo - remove last object
+    const objects = fabricCanvas.current.getObjects();
+    if (objects.length > 1) { // Keep the base image
+      const lastObject = objects[objects.length - 1];
+      fabricCanvas.current.remove(lastObject);
+    }
   };
 
-  const blurSelection = () => {
-    const activeObject = fabricCanvas.current.getActiveObject();
-    if (activeObject) {
-      activeObject.set('filter', new fabric.Image.filters.Blur({ blur: 0.1 }));
+  const handleRedo = () => {
+    // Redo logic would need history tracking
+    toast.info('Redo feature coming soon');
+  };
+
+  const handleClear = () => {
+    if (fabricCanvas.current) {
+      // Remove all objects except the base image
+      const objects = fabricCanvas.current.getObjects();
+      objects.forEach((obj, index) => {
+        if (index > 0) { // Keep first object (base image)
+          fabricCanvas.current.remove(obj);
+        }
+      });
       fabricCanvas.current.renderAll();
-      toast.success('Area blurred successfully');
     }
   };
 
-  const downloadImage = () => {
-    const dataURL = fabricCanvas.current.toDataURL({
-      format: 'png',
-      quality: 1
-    });
-    
-    const link = document.createElement('a');
-    link.download = `quickshot-${Date.now()}.png`;
-    link.href = dataURL;
-    link.click();
-    toast.success('Image downloaded!');
-  };
-
-  const copyToClipboard = async () => {
-    try {
-      const blob = await new Promise(resolve => 
-        fabricCanvas.current.toBlob(resolve, 'image/png')
-      );
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ]);
-      toast.success('Copied to clipboard!');
-    } catch (err) {
-      toast.error('Failed to copy');
+  const handleDownload = () => {
+    if (fabricCanvas.current) {
+      const dataURL = fabricCanvas.current.toDataURL({
+        format: 'png',
+        quality: 1
+      });
+      
+      const link = document.createElement('a');
+      link.download = `quickshot-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+      toast.success('Image downloaded!');
     }
   };
 
-  const zoomIn = () => {
-    const newZoom = zoomLevel * 1.2;
-    setZoomLevel(newZoom);
-    fabricCanvas.current.setZoom(newZoom);
+  const handleCopy = async () => {
+    if (fabricCanvas.current) {
+      try {
+        const blob = await new Promise(resolve => 
+          fabricCanvas.current.toBlob(resolve, 'image/png')
+        );
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        toast.success('Copied to clipboard!');
+      } catch (err) {
+        toast.error('Failed to copy: ' + err.message);
+      }
+    }
   };
 
-  const zoomOut = () => {
-    const newZoom = zoomLevel / 1.2;
-    setZoomLevel(newZoom);
-    fabricCanvas.current.setZoom(newZoom);
+  const handleShare = () => {
+    toast.info('Share feature coming soon');
+  };
+
+  const handleLoadImage = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // Load new image
+        fabric.Image.fromURL(e.target.result, (img) => {
+          fabricCanvas.current.clear();
+          fabricCanvas.current.add(img);
+          fabricCanvas.current.renderAll();
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleZoomChange = (newZoom) => {
+    setZoom(newZoom);
+    if (fabricCanvas.current) {
+      fabricCanvas.current.setZoom(newZoom);
+      fabricCanvas.current.renderAll();
+    }
   };
 
   return (
-    <div className="canvas-editor-container">
-      {/* Enhanced Toolbar */}
-      <div className="toolbar bg-dark text-white p-2">
-        <div className="d-flex align-items-center">
-          {/* Navigation */}
-          <button className="btn btn-outline-light me-2" onClick={onBack}>
-            ← Back
-          </button>
-
-          {/* Tools */}
-          <div className="btn-group me-3">
-            {tools.map(tool => (
-              <button
-                key={tool.id}
-                className={`btn ${activeTool === tool.id ? 'btn-primary' : 'btn-outline-light'}`}
-                onClick={() => handleToolSelect(tool.id)}
-                title={tool.name}
-              >
-                {tool.icon}
-              </button>
-            ))}
-          </div>
-
-          {/* Color Picker */}
-          <div className="me-3">
-            <input
-              type="color"
-              className="form-control form-control-color"
-              value={brushColor}
-              onChange={(e) => setBrushColor(e.target.value)}
-              title="Choose color"
-            />
-          </div>
-
-          {/* Brush Size */}
-          <div className="me-3" style={{ width: '100px' }}>
-            <input
-              type="range"
-              className="form-range"
-              min="1"
-              max="20"
-              value={brushWidth}
-              onChange={(e) => setBrushWidth(parseInt(e.target.value))}
-            />
-          </div>
-
-          {/* Zoom Controls */}
-          <div className="btn-group me-3">
-            <button className="btn btn-outline-light" onClick={zoomOut}>
-              <Minus size={16} />
-            </button>
-            <span className="btn btn-outline-light">
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            <button className="btn btn-outline-light" onClick={zoomIn}>
-              <Plus size={16} />
-            </button>
-            <button className="btn btn-outline-light" onClick={() => {
-              setZoomLevel(1);
-              fabricCanvas.current.setZoom(1);
-            }}>
-              <Maximize2 size={16} />
-            </button>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="ms-auto btn-group">
-            <button className="btn btn-outline-light" onClick={undo}>
-              <Undo2 size={16} />
-            </button>
-            <button className="btn btn-outline-light" onClick={redo}>
-              <Redo2 size={16} />
-            </button>
-            <button className="btn btn-outline-light" onClick={addArrow}>
-              ➚
-            </button>
-            <button className="btn btn-outline-warning" onClick={blurSelection}>
-              Blur
-            </button>
-            <button className="btn btn-danger" onClick={() => {
-              fabricCanvas.current.getActiveObject()?.remove();
-            }}>
-              <Trash2 size={16} />
-            </button>
-          </div>
+    <div className="canvas-editor-container d-flex flex-column h-100">
+      <Toolbar
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
+        onColorChange={setBrushColor}
+        onBrushSizeChange={setBrushSize}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onClear={handleClear}
+        onDownload={handleDownload}
+        onCopy={handleCopy}
+        onShare={handleShare}
+        onLoadImage={handleLoadImage}
+        zoom={zoom}
+        onZoomChange={handleZoomChange}
+        color={brushColor}
+        brushSize={brushSize}
+        canvasRef={fabricCanvas}
+      />
+      
+      <div className="canvas-wrapper flex-grow-1 p-3 bg-secondary bg-opacity-10 overflow-auto">
+        <div className="d-flex justify-content-center align-items-center h-100">
+          <canvas
+            ref={canvasRef}
+            className="border rounded shadow"
+            style={{ 
+              maxWidth: '100%',
+              maxHeight: '100%',
+              cursor: activeTool === 'select' ? 'default' : 'crosshair'
+            }}
+          />
         </div>
       </div>
-
-      {/* Canvas Container */}
-      <div className="canvas-wrapper p-3 bg-secondary bg-opacity-10">
-        <canvas
-          ref={canvasRef}
-          className="border rounded shadow-lg"
-        />
-      </div>
-
-      {/* Bottom Action Bar */}
-      <div className="action-bar bg-light p-3 border-top">
+      
+      <div className="action-footer p-2 bg-light border-top">
         <div className="d-flex justify-content-between align-items-center">
-          <div className="btn-group">
-            <button 
-              className="btn btn-success"
-              onClick={downloadImage}
-            >
-              <Save size={16} className="me-2" />
-              Save Image
-            </button>
-            <button 
-              className="btn btn-info"
-              onClick={copyToClipboard}
-            >
-              <Copy size={16} className="me-2" />
-              Copy
-            </button>
-            <button 
-              className="btn btn-warning"
-              onClick={() => toast.success('Sharing feature coming soon!')}
-            >
-              <Share2 size={16} className="me-2" />
-              Share
-            </button>
-            <button 
-              className="btn btn-primary"
-              onClick={() => document.getElementById('file-upload').click()}
-            >
-              <Upload size={16} className="me-2" />
-              Upload
-            </button>
-          </div>
-
+          <button 
+            className="btn btn-outline-secondary btn-sm"
+            onClick={onBack}
+          >
+            ← Back to Menu
+          </button>
           <div className="text-muted small">
             <RotateCw size={14} className="me-1" />
-            Auto-save enabled
+            QuickShot Pro Editor
           </div>
         </div>
       </div>

@@ -23,18 +23,39 @@ const Popup = () => {
         chrome.storage.local.set({ firstTime: false });
       }
     });
+
+    // Listen for screenshot completion
+    chrome.runtime.onMessage.addListener((message) => {
+      if (message.action === 'screenshotCaptured') {
+        setCurrentScreenshot(message.data);
+      }
+    });
   }, []);
 
-  const startScreenshot = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.scripting.executeScript({
-        target: { tabId: tabs[0].id },
-        files: ['src/content/content.js']
-      }, () => {
-        chrome.tabs.sendMessage(tabs[0].id, { action: 'startScreenshot' });
-        window.close();
+  const startScreenshot = async () => {
+    try {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        // Inject content script first
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          files: ['content.js']
+        }, () => {
+          // Send message to start screenshot
+          chrome.tabs.sendMessage(tabs[0].id, { 
+            action: 'startScreenshot' 
+          }, (response) => {
+            if (response && response.success) {
+              // Close popup after starting screenshot
+              window.close();
+            } else {
+              console.error('Failed to start screenshot');
+            }
+          });
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error starting screenshot:', error);
+    }
   };
 
   const loadImage = (imageData) => {
