@@ -1,59 +1,50 @@
-:root {
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-}
-
-body {
-  width: 900px;
-  min-height: 700px;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
 .app-container {
-  height: 700px;
-  display: flex;
-  flex-direction: column;
+  width: 800px;
+  height: 600px;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Main Menu Styles */
 .main-menu-container {
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  flex: 1;
+  height: 100%;
   overflow-y: auto;
 }
 
 .gradient-text {
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  display: inline-block;
 }
 
 .bg-gradient-primary {
-  background: var(--primary-gradient) !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
 }
 
 .drop-zone {
   transition: all 0.3s ease;
   cursor: pointer;
+  border-color: #dee2e6 !important;
 }
 
 .drop-zone:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  border-color: #0d6efd !important;
 }
 
 .feature-card {
   transition: all 0.3s ease;
   cursor: pointer;
+  border: 1px solid #dee2e6;
 }
 
 .feature-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  border-color: #0d6efd;
 }
 
 .hover-lift {
@@ -74,53 +65,51 @@ body {
   100% { transform: scale(1); }
 }
 
-/* Canvas Editor Styles */
-.canvas-editor-container {
+/* Toolbar Styles */
+.toolbar-container {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.toolbar {
+.main-toolbar {
   flex-shrink: 0;
 }
 
-.canvas-wrapper {
-  flex: 1;
-  overflow: auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+.secondary-toolbar {
+  flex-shrink: 0;
 }
 
 .action-bar {
   flex-shrink: 0;
 }
 
-/* Color Swatches */
+/* Color Picker */
+.color-picker-popup {
+  position: absolute;
+  z-index: 1000;
+  min-width: 250px;
+}
+
 .color-swatch {
-  transition: all 0.2s ease;
-  border: 2px solid transparent !important;
+  transition: transform 0.2s ease;
 }
 
 .color-swatch:hover {
   transform: scale(1.2);
-  border-color: #fff !important;
-  box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }
 
 .gradient-swatch {
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
 .gradient-swatch:hover {
   transform: scale(1.05);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
 }
 
 /* Tutorial Overlay */
 .tutorial-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -148,7 +137,20 @@ body {
   }
 }
 
-/* Custom Scrollbar */
+/* Quick Stats */
+.stats-footer {
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .app-container {
+    width: 400px;
+    height: 500px;
+  }
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -156,20 +158,14 @@ body {
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 10px;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
-}
-
-/* Toast Customization */
-.toast-custom {
-  border-radius: 10px !important;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2) !important;
 }
